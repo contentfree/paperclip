@@ -2,7 +2,7 @@ module Paperclip
   # Handles thumbnailing images that are uploaded.
   class Thumbnail < Processor
 
-    attr_accessor :current_geometry, :target_geometry, :format, :whiny, :convert_options
+    attr_accessor :current_geometry, :target_geometry, :format, :whiny, :convert_options, :prepend_options
 
     # Creates a Thumbnail object set to work on the +file+ given. It
     # will attempt to transform the image into one defined by +target_geometry+
@@ -18,6 +18,7 @@ module Paperclip
       @target_geometry  = Geometry.parse geometry
       @current_geometry = Geometry.from_file @file
       @convert_options  = options[:convert_options]
+      @prepend_options  = options[:prepend_options]
       @whiny            = options[:whiny].nil? ? true : options[:whiny]
       @format           = options[:format]
 
@@ -34,7 +35,11 @@ module Paperclip
     def convert_options?
       not @convert_options.blank?
     end
-
+    
+    def prepend_options?
+      not @prepend_options.blank?
+    end
+    
     # Performs the conversion of the +file+ into a thumbnail. Returns the Tempfile
     # that contains the new image.
     def make
@@ -61,9 +66,11 @@ module Paperclip
     # into the thumbnail.
     def transformation_command
       scale, crop = @current_geometry.transformation_to(@target_geometry, crop?)
-      trans = "-resize \"#{scale}\""
-      trans << " -crop \"#{crop}\" +repage" if crop
-      trans << " #{convert_options}" if convert_options?
+      trans = ''
+      trans << "#{prepend_options} " if prepend_options?
+      trans << "-resize \"#{scale}\" "
+      trans << "-crop \"#{crop}\" +repage " if crop
+      trans << "#{convert_options} " if convert_options?
       trans
     end
   end
