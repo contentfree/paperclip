@@ -368,6 +368,11 @@ module Paperclip
       return true if callback(:"#{which}_post_process") == false
       return true if callback(:"#{which}_#{name}_post_process") == false
     end
+    
+    def fire_style_events(which, style)
+      return true if callback(:"#{which}_#{style}_post_process") == false
+      return true if callback(:"#{which}_#{self.name}_#{style}_post_process") == false
+    end
 
     def callback which #:nodoc:
       instance.run_callbacks(which, @queued_for_write){|result, obj| result == false }
@@ -377,9 +382,12 @@ module Paperclip
       @styles.each do |name, args|
         begin
           raise RuntimeError.new("Style #{name} has no processors defined.") if args[:processors].blank?
+          next if fire_style_events(:before, name)
+          args[:name] = name # So that the processor will be able to do different things based on the style
           @queued_for_write[name] = args[:processors].inject(@queued_for_write[:original]) do |file, processor|
             Paperclip.processor(processor).make(file, args, self)
           end
+          next if fire_style_events(:after, name)
         rescue PaperclipError => e
           log("An error was received while processing: #{e.inspect}")
           (@errors[:processing] ||= []) << e.message if @whiny
@@ -389,7 +397,7 @@ module Paperclip
 
     def interpolate pattern, style = default_style #:nodoc:
       Paperclip::Interpolations.interpolate(pattern, self, style)
-    end
+        end
 
     def queue_existing_for_delete #:nodoc:
       return unless file?

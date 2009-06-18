@@ -146,7 +146,7 @@ module Paperclip
 
   class NotIdentifiedByImageMagickError < PaperclipError #:nodoc:
   end
-  
+
   class InfiniteInterpolationError < PaperclipError #:nodoc:
   end
 
@@ -222,7 +222,11 @@ module Paperclip
 
       define_callbacks :before_post_process, :after_post_process
       define_callbacks :"before_#{name}_post_process", :"after_#{name}_post_process"
-     
+      options[:styles].each do |style_name, options|
+        define_callbacks :"before_#{style_name}_post_process", :"after_#{style_name}_post_process"
+        define_callbacks :"before_#{name}_#{style_name}_post_process", :"after_#{name}_#{style_name}_post_process"
+      end
+      
       define_method name do |*args|
         a = attachment_for(name)
         (args.length > 0) ? a.to_s(args.first) : a
